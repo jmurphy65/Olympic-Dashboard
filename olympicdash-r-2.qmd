@@ -13,6 +13,8 @@ logo-alt: "Olympics logo with multicolored circles."
 #| label: load-packages
 library(tidyverse)
 library(gt)
+library(nord)
+library(paletteer)
 ```
 
 ```{r}
@@ -24,7 +26,6 @@ olympics_full <- read_csv("data/olympics.csv")
 #| label: prep-data
 olympics <- olympics_full |>
   filter(
-    season == "Summer",
     !is.na(medal)
   ) |>
   separate_wider_delim(
@@ -38,7 +39,16 @@ olympics <- olympics_full |>
   mutate(medal = fct_relevel(medal, "Bronze", "Silver", "Gold"))
 ```
 
-## Column - Medals by sport and year
+# Summer Olympics
+
+```{r}
+#| label: summer-prep-data
+summer_olympics <- olympics |> 
+  filter(season == "Summer")
+
+```
+
+## Column - Medals by sport and year {width="65%"}
 
 ### Row - Medals by sport {height="60%"}
 
@@ -47,7 +57,7 @@ olympics <- olympics_full |>
 #| title: Medals by sport
 #| fig-width: 10
 #| fig-asp: 0.618
-olympics |>
+summer_olympics |>
   mutate(
     sport = fct_lump_n(sport, n = 15),
     sport = fct_infreq(sport),
@@ -73,12 +83,14 @@ olympics |>
 
 ### Row - Medals by year {height="40%"}
 
+::: {.card title="Medals by Year"}
+Due to World War II, no Olympic Games were held in 1940 and 1944.
+
 ```{r}
 #| label: medals-by-year
-#| title: Medals by year
 #| fig-asp: 0.3
 #| fig-width: 10
-olympics |>
+summer_olympics |>
   count(year, medal) |>
   ggplot(aes(x = year, y = n, color = medal)) +
   geom_point(size = 0.5) +
@@ -98,13 +110,67 @@ olympics |>
     legend.background = element_rect(fill = "white", color = "gray")
   )
 ```
+:::
 
-## Column - Medals by country
+## Column - Medals by country {width="35%"}
+
+### Row - Value Boxes {height="30%}
 
 ```{r}
-#| label: medals-by-country
-#| title: Medals by country
-olympics |>
+#| label: summer-calculate-most-medals
+
+summer_most_golds<- summer_olympics |> 
+  filter(medal == "Gold") |> 
+  count(team, sort = TRUE) |> 
+  slice_head(n = 1)
+
+summer_most_silvers<- summer_olympics |> 
+  filter(medal == "Silver") |> 
+  count(team, sort = TRUE) |> 
+  slice_head(n = 1)
+
+summer_most_bronzes<- summer_olympics |> 
+  filter(medal == "Bronze") |> 
+  count(team, sort = TRUE) |> 
+  slice_head(n = 1)
+
+```
+
+:::{.valuebox icon="award-fill" color="#d4ad37"}
+Most golds:
+
+`{r} summer_most_golds$n`
+
+`{r} summer_most_golds$team`
+
+:::
+
+:::{.valuebox icon="award-fill" color="#c0c0c0"}
+Most silvers:
+
+`{r} summer_most_silvers$n`
+
+`{r} summer_most_silvers$team`
+
+:::
+
+:::{.valuebox icon="award-fill" color="#cd7f32"}
+Most bronzes:
+
+`{r} summer_most_bronzes$n`
+
+`{r} summer_most_bronzes$team`
+
+:::
+
+### Row - Tabsets of Tables {height="70% .tabset}
+
+::: {.card title="Top 30 Medals"}
+Teams ordered in descending order of medals
+
+```{r}
+#| label: top-30-medals
+summer_olympics |>
   count(team, medal) |>
   pivot_wider(
     names_from = medal, 
@@ -114,5 +180,215 @@ olympics |>
   mutate(Total = Bronze + Gold + Silver) |>
   relocate(Team = team, Gold, Silver, Bronze, Total) |>
   arrange(desc(Total), Team) |>
-  gt()
+  slice_head(n = 30) |> 
+  gt() |> 
+  cols_align(align = "left", column = "Team") |> 
+    data_color(
+    method = "numeric",
+    palette = "nord::aurora"
+  )
 ```
+:::
+
+::: {.card title="Bottom 30 medals"}
+
+Teams ordered in descending order of medals
+
+```{r}
+#| label: bottom-30-medals
+summer_olympics |>
+  count(team, medal) |>
+  pivot_wider(
+    names_from = medal, 
+    values_from = n, 
+    values_fill = 0
+  ) |>
+  mutate(Total = Bronze + Gold + Silver) |>
+  relocate(Team = team, Gold, Silver, Bronze, Total) |>
+  arrange(Total, Team) |>
+  slice_head(n = 30) |> 
+  gt() |> 
+  cols_align(align = "left", column = "Team") |> 
+  data_color(
+    method = "numeric",
+    palette = "nord::aurora"
+  )
+```
+:::
+
+# Winter Olympics
+
+```{r}
+#| label: winter-prep-data
+winter_olympics <- olympics |> 
+  filter(season == "Winter")
+
+```
+
+## Column - Medals by sport and year {width="65%"}
+
+### Row - Medals by sport {height="60%"}
+
+```{r}
+#| label: winter-medals-by-sport
+#| title: Medals by sport
+#| fig-width: 10
+#| fig-asp: 0.618
+winter_olympics |>
+  mutate(
+    sport = fct_lump_n(sport, n = 15),
+    sport = fct_infreq(sport),
+    sport = fct_rev(sport),
+    sport = fct_relevel(sport, "Other", after = 0)
+  ) |>
+  ggplot(aes(y = sport, fill = medal)) +
+  geom_bar() +
+  guides(fill = guide_legend(reverse = TRUE)) +
+  labs(
+    x = NULL,
+    y = NULL,
+    fill = "Medal"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.9, 0.2),
+    legend.direction = "horizontal",
+    legend.background = element_rect(fill = "white", color = "gray")
+  )
+```
+
+### Row - Medals by year {height="40%"}
+
+::: {.card title="Medals by Year"}
+Due to World War II, no Olympic Games were held in 1940 and 1944.
+
+```{r}
+#| label: winter-medals-by-year
+#| fig-asp: 0.3
+#| fig-width: 10
+winter_olympics |>
+  count(year, medal) |>
+  ggplot(aes(x = year, y = n, color = medal)) +
+  geom_point(size = 0.5) +
+  geom_line() +
+  guides(color = guide_legend(reverse = TRUE)) +
+  scale_x_continuous(breaks = seq(1896, 2020, 8)) +
+  labs(
+    x = "Year",
+    y = NULL,
+    color = "Medal"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "inside",
+    legend.position.inside = c(0.9, 0.2),
+    legend.direction = "horizontal",
+    legend.background = element_rect(fill = "white", color = "gray")
+  )
+```
+:::
+
+## Column - Medals by country {width="35%"}
+
+### Row - Value Boxes {height="30%}
+
+```{r}
+#| label: winter-calculate-most-medals
+
+winter_most_golds<- winter_olympics |> 
+  filter(medal == "Gold") |> 
+  count(team, sort = TRUE) |> 
+  slice_head(n = 1)
+
+winter_most_silvers<- winter_olympics |> 
+  filter(medal == "Silver") |> 
+  count(team, sort = TRUE) |> 
+  slice_head(n = 1)
+
+winter_most_bronzes<- winter_olympics |> 
+  filter(medal == "Bronze") |> 
+  count(team, sort = TRUE) |> 
+  slice_head(n = 1)
+
+```
+
+:::{.valuebox icon="award-fill" color="#d4ad37"}
+Most golds:
+
+`{r} winter_most_golds$n`
+
+`{r} winter_most_golds$team`
+
+:::
+
+:::{.valuebox icon="award-fill" color="#c0c0c0"}
+Most silvers:
+
+`{r} winter_most_silvers$n`
+
+`{r} winter_most_silvers$team`
+
+:::
+
+:::{.valuebox icon="award-fill" color="#cd7f32"}
+Most bronzes:
+
+`{r} winter_most_bronzes$n`
+
+`{r} winter_most_bronzes$team`
+
+:::
+
+### Row - Tabsets of Tables {height="70% .tabset}
+
+::: {.card title="Top 30 Medals"}
+Teams ordered in descending order of medals
+
+```{r}
+#| label: winter-top-30-medals
+winter_olympics |>
+  count(team, medal) |>
+  pivot_wider(
+    names_from = medal, 
+    values_from = n, 
+    values_fill = 0
+  ) |>
+  mutate(Total = Bronze + Gold + Silver) |>
+  relocate(Team = team, Gold, Silver, Bronze, Total) |>
+  arrange(desc(Total), Team) |>
+  slice_head(n = 30) |> 
+  gt() |> 
+  cols_align(align = "left", column = "Team") |> 
+    data_color(
+    method = "numeric",
+    palette = "nord::aurora"
+  )
+```
+:::
+
+::: {.card title="Bottom 30 medals"}
+
+Teams ordered in descending order of medals
+
+```{r}
+#| label: winter-bottom-30-medals
+winter_olympics |>
+  count(team, medal) |>
+  pivot_wider(
+    names_from = medal, 
+    values_from = n, 
+    values_fill = 0
+  ) |>
+  mutate(Total = Bronze + Gold + Silver) |>
+  relocate(Team = team, Gold, Silver, Bronze, Total) |>
+  arrange(Total, Team) |>
+  slice_head(n = 30) |> 
+  gt() |> 
+  cols_align(align = "left", column = "Team") |> 
+  data_color(
+    method = "numeric",
+    palette = "nord::aurora"
+  )
+```
+:::
